@@ -79,7 +79,7 @@ class Dispatcher(object):
         """
         A tuple of regex -> callback where the argument signature of callback:
 
-        def some_callback(sender, message, channel, is_ping):
+        def some_callback(sender, message, channel, is_ping, reply):
             do some shit
         """
         raise NotImplementedError
@@ -95,7 +95,7 @@ class Dispatcher(object):
                     return self.send(message, channel=channel, nick=nick)
                 result = callback(nick, message, channel, is_ping, curried_reply)
                 if result:
-                    self.send(result, channel, nick)
+                    curried_reply(result)
 
     def on_private_message(self, nick, message):
         self.on_channel_message(nick, None, message)
