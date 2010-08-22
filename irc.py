@@ -54,7 +54,8 @@ class IRCConnection(object):
         self.register_callback('PRIVMSG', instance.on_private_message)
 
     def enter_event_loop(self):
-        for line in self._sock:
+        while not self._sock.closed:
+            line = self._sock.readline()
             line = line.rstrip()
             if line.startswith('PING'):
                 self.send('PONG %s' % line.split()[1])
