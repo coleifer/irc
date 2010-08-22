@@ -85,7 +85,7 @@ class Dispatcher(object):
 
     def on_channel_message(self, nick, channel, message):
         is_ping = False
-        if re.match('^%s[: ]' % self.irc.nick, message):
+        if re.match('^%s[:\s]' % self.irc.nick, message):
             message = re.sub('%s[^\s]*?\s' % self.irc.nick, '', message)
             is_ping = True
         for (pattern, callback) in self.get_patterns():
