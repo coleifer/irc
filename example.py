@@ -2,9 +2,9 @@ from irc import Dispatcher, IRCBot
 
 
 class GreetingDispatcher(Dispatcher):
-    def greet(self, sender, message, channel, is_ping):
+    def greet(self, sender, message, channel, is_ping, reply):
         if is_ping or channel is None:
-            self.send('Hi, %s' % sender, channel=channel, nick=sender)
+            reply('Hi, %s' % sender)
     
     def get_patterns(self):
         return (

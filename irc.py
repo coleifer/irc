@@ -92,7 +92,9 @@ class Dispatcher(object):
             is_ping = True
         for (pattern, callback) in self.get_patterns():
             if re.search(pattern, message):
-                callback(nick, message, channel, is_ping)
+                def curried_reply(message):
+                    return self.send(message, channel=channel, nick=nick)
+                callback(nick, message, channel, is_ping, curried_reply)
     
     def on_private_message(self, nick, message):
         self.on_channel_message(nick, None, message)
