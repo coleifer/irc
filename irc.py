@@ -9,8 +9,8 @@ class IRCConnection(object):
         'CHANMSG': [],
     }
     
-    chanmsg_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PRIVMSG #(?P<channel>[-\w]+)\s+:(?P<message>[^\n\r]+)')
-    privmsg_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PRIVMSG\s+[^:]+:(?P<message>[^\n\r]+)')
+    chanmsg_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PRIVMSG\s+#(?P<channel>[-\w]+)\s+:(?P<message>[^\n\r]+)')
+    privmsg_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PRIVMSG\s+[^#][^:]+:(?P<message>[^\n\r]+)')
     
     def __init__(self, host, port, nick):
         self.host = host
@@ -91,7 +91,7 @@ class Dispatcher(object):
             message = re.sub('%s[^\s]*?\s' % self.irc.nick, '', message)
             is_ping = True
         for (pattern, callback) in self.get_patterns():
-            if re.match(pattern, message):
+            if re.search(pattern, message):
                 callback(nick, message, channel, is_ping)
     
     def on_private_message(self, nick, message):
