@@ -1,5 +1,6 @@
 import re
 import socket
+import time
 
 
 class IRCConnection(object):
@@ -71,9 +72,15 @@ class IRCConnection(object):
                         event(**priv_match.groupdict())
 
 
-class Dispatcher(object):
+class Dispatcher(object):    
+    rate_limit = (3, .75) # for every three lines, delay .75s
+    
     def __init__(self, irc_connection):
         self.irc = irc_connection
+        
+        # rate limiter state
+        self.num_sent = 0
+        self.last_send = 0
 
     def get_patterns(self):
         """
@@ -101,6 +108,12 @@ class Dispatcher(object):
         self.on_channel_message(nick, None, message)
 
     def send(self, message, channel=None, nick=None):
+        if self.num_sent == self.rate_limit[0]:
+            self.num_sent = 0
+            if time.time() - self.last_send <= self.rate_limit[1]:
+                time.sleep(self.rate_limit[1] - (time.time() - self.last_send))
+            self.last_send = time.time()
+        self.num_sent += 1
         if channel:
             self.irc.send('PRIVMSG #%s :%s' % (channel.lstrip('#'), message))
         elif nick:

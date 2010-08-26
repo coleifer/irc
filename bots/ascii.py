@@ -62,8 +62,6 @@ class AsciiArtDispatcher(Dispatcher):
             if line.strip():
                 i += 1
                 reply(line)
-                if i % 3 == 0:
-                    time.sleep(.75)
                 if i > 45:
                     return
     
