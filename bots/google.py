@@ -18,7 +18,7 @@ class GoogleDispatcher(Dispatcher):
     
     def greet(self, sender, message, channel, is_ping, reply):
         if is_ping:
-            result = self.fetch_result(message.replce('find me ', ''))
+            result = self.fetch_result(message.replace('find me ', ''))
             if result:
                 reply(result)
     
