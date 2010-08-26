@@ -58,5 +58,5 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'quote_bot'
 
-quote = IRCBot(host, port, nick, ['#lawrence-botwars'], [QuoteDispatcher])
+quote = IRCBot(host, port, nick, ['#lawrence-botwars'], [QuoteDispatcher()])
 quote.run_forever()

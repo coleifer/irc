@@ -48,12 +48,6 @@ class IRCConnection(object):
     def unregister_callback(self, event, func):
         self._callbacks[event].remove(func)
 
-    def load_dispatcher(self, dispatcher_class):
-        instance = dispatcher_class(self)
-
-        self.register_callback('CHANMSG', instance.on_channel_message)
-        self.register_callback('PRIVMSG', instance.on_private_message)
-
     def enter_event_loop(self):
         while not self._sock.closed:
             line = self._sock.readline()
@@ -75,12 +69,16 @@ class IRCConnection(object):
 class Dispatcher(object):    
     rate_limit = (3, .75) # for every three lines, delay .75s
     
-    def __init__(self, irc_connection):
-        self.irc = irc_connection
-        
+    def __init__(self):
         # rate limiter state
         self.num_sent = 0
         self.last_send = 0
+    
+    def bind(self, conn):
+        self.irc = conn
+
+        self.irc.register_callback('CHANMSG', self.on_channel_message)
+        self.irc.register_callback('PRIVMSG', self.on_private_message)
 
     def get_patterns(self):
         """
@@ -130,7 +128,7 @@ class IRCBot(object):
             self.conn.join(channel)
 
         for dispatcher in dispatchers:
-            self.conn.load_dispatcher(dispatcher)
+            dispatcher.bind(self.conn)
 
     def run_forever(self):
         try:
