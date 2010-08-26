@@ -64,7 +64,7 @@ class AsciiArtDispatcher(Dispatcher):
                 reply(line)
                 if i % 3 == 0:
                     time.sleep(.75)
-                if i > 15:
+                if i > 45:
                     return
     
     def get_patterns(self):
