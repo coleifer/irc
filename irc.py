@@ -67,18 +67,15 @@ class IRCConnection(object):
 
 
 class Dispatcher(object):    
-    rate_limit = (3, .75) # for every three lines, delay .75s
-    
-    def __init__(self):
-        # rate limiter state
-        self.num_sent = 0
-        self.last_send = 0
-    
     def bind(self, conn):
         self.irc = conn
 
         self.irc.register_callback('CHANMSG', self.on_channel_message)
         self.irc.register_callback('PRIVMSG', self.on_private_message)
+    
+    def unbind(self):
+        self.irc.unregister_callback('CHANMSG', self.on_channel_message)
+        self.irc.unregister_callback('PRIVMSG', self.on_private_message)
 
     def get_patterns(self):
         """
@@ -106,16 +103,30 @@ class Dispatcher(object):
         self.on_channel_message(nick, None, message)
 
     def send(self, message, channel=None, nick=None):
-        if self.num_sent == self.rate_limit[0]:
-            self.num_sent = 0
-            if time.time() - self.last_send <= self.rate_limit[1]:
-                time.sleep(self.rate_limit[1] - (time.time() - self.last_send))
-            self.last_send = time.time()
-        self.num_sent += 1
         if channel:
             self.irc.send('PRIVMSG #%s :%s' % (channel.lstrip('#'), message))
         elif nick:
             self.irc.send('PRIVMSG %s :%s' % (nick, message))
+
+
+class RateLimitedDispatcher(Dispatcher):
+    rate_limit = (3, .75) # every 3 events, wait .75
+    
+    def __init__(self):
+        self.num_sent = 0
+        self.last_send = 0
+
+    def send(self, *args, **kwargs):
+        if self.num_sent == self.rate_limit[0]:
+            self.num_sent = 0
+            if time.time() - self.last_send <= self.rate_limit[1]:
+                self.delay(self.rate_limit[1] - (time.time() - self.last_send))
+            self.last_send = time.time()
+        self.num_sent += 1
+        return super(RateLimitedDispatcher, self).send(*args, **kwargs)
+    
+    def delay(self, timeout):
+        time.sleep(timeout)
 
 
 class IRCBot(object):

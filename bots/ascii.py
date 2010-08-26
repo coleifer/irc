@@ -3,10 +3,10 @@ import random
 import time
 import urllib
 
-from irc import Dispatcher, IRCBot
+from irc import RateLimitedDispatcher, IRCBot
 
 
-class AsciiArtDispatcher(Dispatcher):
+class AsciiArtDispatcher(RateLimitedDispatcher):
     groupings = ['ab', 'c', 'def', 'ghi', 'jkl', 'mno', 'pqr', 's', 't', 'uvw', 'xyz']
     
     def get_grouping(self, word):
