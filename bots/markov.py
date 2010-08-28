@@ -9,8 +9,11 @@ class MarkovDispatcher(Dispatcher):
     """
     Hacking on a markov chain bot - based on:
     http://code.activestate.com/recipes/194364-the-markov-chain-algorithm/
+    http://github.com/ericflo/yourmomdotcom
     """
     max_words = 10
+    chain_length = 3
+    stop_word = '\n'
     filename = 'markov.db'
     
     def __init__(self, *args, **kwargs):
@@ -29,27 +32,31 @@ class MarkovDispatcher(Dispatcher):
         fh = open(self.filename, 'w')
         fh.write(pickle.dumps(self.word_table))
         fh.close()
-    
+
     def split_message(self, message):
         words = message.split()
-        for i in range(len(words) - 2):
-            yield (words[i], words[i+1], words[i+2])
-    
+        if len(words) > self.chain_length:
+            words.extend([self.stop_word] * self.chain_length)
+            for i in range(len(words) - self.chain_length):
+                yield (words[i:i + self.chain_length + 1])
+
     def generate_message(self, person, size=15):
         person_words = len(self.word_table.get(person, []))
         if person_words < size:
             return
-        
+
         rand_key = random.randint(0, person_words - 1)
-        w1, w2 = self.word_table[person].keys()[rand_key]
-        
+        words = self.word_table[person].keys()[rand_key]
+
         gen_words = []
         for i in xrange(size):
-            gen_words.append(w1)
+            if words[0] == self.stop_word:
+                break
+
+            gen_words.append(words[0])
             try:
-                w1, w2 = w2, random.choice(self.word_table[person][(w1, w2)])
-                gen_words.append(w2)
-            except KeyError:    
+                words = words[1:] + (random.choice(self.word_table[person][words]),)
+            except KeyError:
                 break
         
         return ' '.join(gen_words)
@@ -61,12 +68,12 @@ class MarkovDispatcher(Dispatcher):
     
     def log(self, sender, message, channel, is_ping, reply):
         self.word_table.setdefault(sender, {})
-        for w1, w2, w3 in self.split_message(message):
-            key = (w1, w2)
+        for words in self.split_message(message):
+            key = tuple(words[:-1])
             if key in self.word_table:
-                self.word_table[sender][key].append(w3)
+                self.word_table[sender][key].append(words[-1])
             else:
-                self.word_table[sender][key] = [w3]
+                self.word_table[sender][key] = [words[-1]]
     
     def get_patterns(self):
         return (
@@ -80,6 +87,6 @@ port = 6667
 nick = 'whatyousay'
 
 markov = MarkovDispatcher()
-greeter = IRCBot(host, port, nick, ['#lawrence'], [markov])
+greeter = IRCBot(host, port, nick, ['#lawrence-botwars'], [markov])
 greeter.run_forever()
 markov.save_data()
