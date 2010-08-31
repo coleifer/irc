@@ -1,6 +1,9 @@
+#!/usr/bin/python
 import os
 import pickle
 import random
+import re
+import sys
 
 from irc import Dispatcher, IRCBot
 
@@ -11,8 +14,8 @@ class MarkovDispatcher(Dispatcher):
     http://code.activestate.com/recipes/194364-the-markov-chain-algorithm/
     http://github.com/ericflo/yourmomdotcom
     """
-    max_words = 10
-    chain_length = 3
+    max_words = 15
+    chain_length = 2
     stop_word = '\n'
     filename = 'markov.db'
     
@@ -63,17 +66,31 @@ class MarkovDispatcher(Dispatcher):
 
     def imitate(self, sender, message, channel, is_ping, reply):
         if is_ping:
-            person = message.replace('imitate ', '').strip()
+            person = message.replace('imitate ', '').strip()[:10]
             return self.generate_message(person)
     
+    def sanitize_message(self, message):
+        """Convert to lower-case and strip out all quotation marks"""
+        return re.sub('[\"\']', '', message.lower())
+
     def log(self, sender, message, channel, is_ping, reply):
+        sender = sender[:10]
         self.word_table.setdefault(sender, {})
-        for words in self.split_message(message):
+        for words in self.split_message(self.sanitize_message(message)):
             key = tuple(words[:-1])
             if key in self.word_table:
                 self.word_table[sender][key].append(words[-1])
             else:
                 self.word_table[sender][key] = [words[-1]]
+
+    def load_log_file(self, filename):
+        fh = open(filename, 'r')
+        logline_re = re.compile('<\s*(\w+)>[^\]]+\]\s([^\r\n]+)[\r\n]')
+        for line in fh.readlines():
+            match = logline_re.search(line)
+            if match:
+                sender, message = match.groups()
+                self.log(sender, message, '', False, None)
     
     def get_patterns(self):
         return (
@@ -87,6 +104,11 @@ port = 6667
 nick = 'whatyousay'
 
 markov = MarkovDispatcher()
-greeter = IRCBot(host, port, nick, ['#lawrence-botwars'], [markov])
-greeter.run_forever()
-markov.save_data()
+
+if len(sys.argv) == 3 and sys.argv[1] == '-log':
+    markov.load_log_file(sys.argv[2])
+    markov.save_data()
+else:   
+    greeter = IRCBot(host, port, nick, ['#lawrence'], [markov])
+    greeter.run_forever()
+    markov.save_data()
