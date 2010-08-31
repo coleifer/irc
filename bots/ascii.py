@@ -54,16 +54,8 @@ class AsciiArtDispatcher(RateLimitedDispatcher):
         if is_ping:
             result = self.fetch_result(message)
             if result:
-                self.display_incrementally(reply, result)
-    
-    def display_incrementally(self, reply, result):
-        i = 0
-        for line in result.splitlines():
-            if line.strip():
-                i += 1
-                reply(line)
-                if i > 45:
-                    return
+                for line in result.splitlines()[:45]:
+                    reply(line)
     
     def get_patterns(self):
         return (
