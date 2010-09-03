@@ -14,6 +14,8 @@ class MarkovDispatcher(Dispatcher):
     http://code.activestate.com/recipes/194364-the-markov-chain-algorithm/
     http://github.com/ericflo/yourmomdotcom
     """
+    messages_to_generate = 5
+    chattiness = .01
     max_words = 15
     chain_length = 2
     stop_word = '\n'
@@ -43,30 +45,36 @@ class MarkovDispatcher(Dispatcher):
             for i in range(len(words) - self.chain_length):
                 yield (words[i:i + self.chain_length + 1])
 
-    def generate_message(self, person, size=15):
-        person_words = len(self.word_table.get(person, []))
+    def generate_message(self, person, size=15, seed_key=None):
+        person_words = len(self.word_table.get(person, {}))
         if person_words < size:
             return
 
-        rand_key = random.randint(0, person_words - 1)
-        words = self.word_table[person].keys()[rand_key]
+        if not seed_key:
+            seed_key = random.choice(self.word_table[person].keys())
 
-        gen_words = []
-        for i in xrange(size):
-            if words[0] == self.stop_word:
-                break
+        message = []
+        for i in xrange(self.messages_to_generate):
+            words = seed_key
+            gen_words = []
+            for i in xrange(size):
+                if words[0] == self.stop_word:
+                    break
 
-            gen_words.append(words[0])
-            try:
-                words = words[1:] + (random.choice(self.word_table[person][words]),)
-            except KeyError:
-                break
+                gen_words.append(words[0])
+                try:
+                    words = words[1:] + (random.choice(self.word_table[person][words]),)
+                except KeyError:
+                    break
+
+            if len(gen_words) > len(message):
+                message = list(gen_words)
         
-        return ' '.join(gen_words)
+        return ' '.join(message)
 
     def imitate(self, sender, message, channel, is_ping, reply):
-        if is_ping:
-            person = message.replace('imitate ', '').strip()[:10]
+        person = message.replace('imitate ', '').strip()[:10]
+        if is_ping and person != self.irc.nick:
             return self.generate_message(person)
     
     def sanitize_message(self, message):
@@ -76,12 +84,29 @@ class MarkovDispatcher(Dispatcher):
     def log(self, sender, message, channel, is_ping, reply):
         sender = sender[:10]
         self.word_table.setdefault(sender, {})
+
+        say_something = sender != self.irc.nick and random.random() < self.chattiness
+        messages = []
+        seed_key = None
+
         for words in self.split_message(self.sanitize_message(message)):
             key = tuple(words[:-1])
             if key in self.word_table:
                 self.word_table[sender][key].append(words[-1])
             else:
                 self.word_table[sender][key] = [words[-1]]
+
+            if self.stop_word not in key and say_something:
+                for person in self.word_table:
+                    if person == sender:
+                        continue
+                    if key in self.word_table[person]:
+                        generated = self.generate_message(person, seed_key=key)
+                        if generated:
+                            messages.append(generated)
+        
+        if len(messages):
+            return random.choice(messages)
 
     def load_log_file(self, filename):
         fh = open(filename, 'r')
