@@ -85,7 +85,7 @@ class MarkovDispatcher(Dispatcher):
         sender = sender[:10]
         self.word_table.setdefault(sender, {})
 
-        say_something = sender != self.irc.nick and random.random() < self.chattiness
+        say_something = is_ping or sender != self.irc.nick and random.random() < self.chattiness
         messages = []
         seed_key = None
 
