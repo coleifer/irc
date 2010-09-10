@@ -85,7 +85,10 @@ class MarkovDispatcher(Dispatcher):
         sender = sender[:10]
         self.word_table.setdefault(sender, {})
 
-        say_something = is_ping or sender != self.irc.nick and random.random() < self.chattiness
+        try:
+            say_something = is_ping or sender != self.irc.nick and random.random() < self.chattiness
+        except AttributeError:
+            say_something = False
         messages = []
         seed_key = None
 
@@ -116,6 +119,11 @@ class MarkovDispatcher(Dispatcher):
             if match:
                 sender, message = match.groups()
                 self.log(sender, message, '', False, None)
+
+    def load_text_file(self, filename, sender):
+        fh = open(filename, 'r')
+        for line in fh.readlines():
+            self.log(sender, line, '', False, None)
     
     def get_patterns(self):
         return (
@@ -130,10 +138,13 @@ nick = 'whatyousay'
 
 markov = MarkovDispatcher()
 
-if len(sys.argv) == 3 and sys.argv[1] == '-log':
-    markov.load_log_file(sys.argv[2])
-    markov.save_data()
+if len(sys.argv) > 1 and sys.argv[1] == '-log':
+    if len(sys.argv) == 3:
+        markov.load_log_file(sys.argv[2])
+    elif len(sys.argv):
+        markov.load_text_file(sys.argv[2], sys.argv[3])
 else:   
-    greeter = IRCBot(host, port, nick, ['#lawrence'], [markov])
-    greeter.run_forever()
-    markov.save_data()
+    markov_bot = IRCBot(host, port, nick, ['#lawrence'], [markov])
+    markov_bot.run_forever()
+
+markov.save_data()
