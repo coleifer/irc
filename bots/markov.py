@@ -85,6 +85,9 @@ class MarkovDispatcher(Dispatcher):
         sender = sender[:10]
         self.word_table.setdefault(sender, {})
 
+        if message.startswith('/'):
+            return
+
         try:
             say_something = is_ping or sender != self.irc.nick and random.random() < self.chattiness
         except AttributeError:
