@@ -20,6 +20,7 @@ class MarkovDispatcher(Dispatcher):
     chain_length = 2
     stop_word = '\n'
     filename = 'markov.db'
+    last = None 
     
     def __init__(self, *args, **kwargs):
         super(MarkovDispatcher, self).__init__(*args, **kwargs)
@@ -76,6 +77,10 @@ class MarkovDispatcher(Dispatcher):
         person = message.replace('imitate ', '').strip()[:10]
         if is_ping and person != self.irc.nick:
             return self.generate_message(person)
+
+    def cite(self, sender, message, channel, is_ping, reply):
+        if is_ping and self.last:
+            return self.last
     
     def sanitize_message(self, message):
         """Convert to lower-case and strip out all quotation marks"""
@@ -109,10 +114,12 @@ class MarkovDispatcher(Dispatcher):
                     if key in self.word_table[person]:
                         generated = self.generate_message(person, seed_key=key)
                         if generated:
-                            messages.append(generated)
+                            messages.append((person, generated))
         
         if len(messages):
-            return random.choice(messages)
+            self.last, message = random.choice(messages)
+            return message
+
 
     def load_log_file(self, filename):
         fh = open(filename, 'r')
@@ -131,6 +138,7 @@ class MarkovDispatcher(Dispatcher):
     def get_patterns(self):
         return (
             ('^imitate \S+', self.imitate),
+            ('^cite', self.cite),
             ('.*', self.log),
         )
 
