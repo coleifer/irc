@@ -32,5 +32,5 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'googlebot1337'
 
-greeter = IRCBot(host, port, nick, ['#lawrence-botwars'], [GoogleDispatcher()])
+greeter = IRCBot(host, port, nick, ['#botwars'], [GoogleDispatcher()])
 greeter.run_forever()

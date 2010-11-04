@@ -44,5 +44,5 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'answer_bot'
 
-yahoo = IRCBot(host, port, nick, ['#lawrence-botwars'], [YahooAnswersDispatcher()])
+yahoo = IRCBot(host, port, nick, ['#botwars'], [YahooAnswersDispatcher()])
 yahoo.run_forever()

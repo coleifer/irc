@@ -67,5 +67,5 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'picasso_bot'
 
-ascii = IRCBot(host, port, nick, ['#lawrence-botwars'], [AsciiArtDispatcher()])
+ascii = IRCBot(host, port, nick, ['#botwars'], [AsciiArtDispatcher()])
 ascii.run_forever()

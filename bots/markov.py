@@ -155,7 +155,7 @@ if len(sys.argv) > 1 and sys.argv[1] == '-log':
     elif len(sys.argv):
         markov.load_text_file(sys.argv[2], sys.argv[3])
 else:   
-    markov_bot = IRCBot(host, port, nick, ['#lawrence'], [markov])
+    markov_bot = IRCBot(host, port, nick, ['#botwars'], [markov])
     markov_bot.run_forever()
 
 markov.save_data()
