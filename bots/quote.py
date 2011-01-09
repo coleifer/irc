@@ -5,10 +5,10 @@ import urllib
 
 from BeautifulSoup import BeautifulSoup
 
-from irc import Dispatcher, IRCBot
+from irc import IRCBot
 
 
-class QuoteDispatcher(Dispatcher):
+class QuoteBot(IRCBot):
     last_message = ''
     
     def fetch_result(self, phrase):
@@ -58,5 +58,5 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'quote_bot'
 
-quote = IRCBot(host, port, nick, ['#botwars'], [QuoteDispatcher()])
+quote = QuoteBot(host, port, nick, ['#botwars'])
 quote.run_forever()

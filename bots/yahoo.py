@@ -3,10 +3,10 @@ import json
 import re
 import urllib
 
-from irc import Dispatcher, IRCBot
+from irc import IRCBot
 
 
-class YahooAnswersDispatcher(Dispatcher):
+class YahooAnswersBot(IRCBot):
     def get_json(self, url):
         sock = httplib2.Http(timeout=4)
         headers, response = sock.request(url)
@@ -44,5 +44,5 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'answer_bot'
 
-yahoo = IRCBot(host, port, nick, ['#botwars'], [YahooAnswersDispatcher()])
+yahoo = YahooAnswersBot(host, port, nick, ['#botwars'])
 yahoo.run_forever()

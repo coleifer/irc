@@ -5,10 +5,10 @@ import random
 import re
 import sys
 
-from irc import Dispatcher, IRCBot
+from irc import IRCBot
 
 
-class MarkovDispatcher(Dispatcher):
+class MarkovBot(IRCBot):
     """
     Hacking on a markov chain bot - based on:
     http://code.activestate.com/recipes/194364-the-markov-chain-algorithm/
@@ -23,7 +23,7 @@ class MarkovDispatcher(Dispatcher):
     last = None 
     
     def __init__(self, *args, **kwargs):
-        super(MarkovDispatcher, self).__init__(*args, **kwargs)
+        super(MarkovBot, self).__init__(*args, **kwargs)
         self.load_data()
     
     def load_data(self):
@@ -147,15 +147,14 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'whatyousay'
 
-markov = MarkovDispatcher()
+markov_bot = MarkovBot(host, port, nick, ['#botwars'])
 
 if len(sys.argv) > 1 and sys.argv[1] == '-log':
     if len(sys.argv) == 3:
-        markov.load_log_file(sys.argv[2])
+        markov_bot.load_log_file(sys.argv[2])
     elif len(sys.argv):
-        markov.load_text_file(sys.argv[2], sys.argv[3])
-else:   
-    markov_bot = IRCBot(host, port, nick, ['#botwars'], [markov])
+        markov_bot.load_text_file(sys.argv[2], sys.argv[3])
+else:
     markov_bot.run_forever()
 
-markov.save_data()
+markov_bot.save_data()

@@ -3,10 +3,10 @@ import random
 import time
 import urllib
 
-from irc import RateLimitedDispatcher, IRCBot
+from irc import RateLimitedIRCBot
 
 
-class AsciiArtDispatcher(RateLimitedDispatcher):
+class AsciiArtBot(RateLimitedIRCBot):
     groupings = ['ab', 'c', 'def', 'ghi', 'jkl', 'mno', 'pqr', 's', 't', 'uvw', 'xyz']
     
     def get_grouping(self, word):
@@ -67,5 +67,5 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'picasso_bot'
 
-ascii = IRCBot(host, port, nick, ['#botwars'], [AsciiArtDispatcher()])
+ascii = AsciiArtBot(host, port, nick, ['#botwars'])
 ascii.run_forever()

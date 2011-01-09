@@ -2,10 +2,10 @@ import httplib2
 import json
 import urllib
 
-from irc import Dispatcher, IRCBot
+from irc import IRCBot
 
 
-class GoogleDispatcher(Dispatcher):
+class GoogleBot(IRCBot):
     def fetch_result(self, query):
         sock = httplib2.Http(timeout=1)
         headers, response = sock.request(
@@ -16,7 +16,7 @@ class GoogleDispatcher(Dispatcher):
             response = json.loads(response)
             return response['responseData']['results'][0]['unescapedUrl']
     
-    def greet(self, sender, message, channel, is_ping, reply):
+    def find_me(self, sender, message, channel, is_ping, reply):
         if is_ping:
             result = self.fetch_result(message.replace('find me ', ''))
             if result:
@@ -24,7 +24,7 @@ class GoogleDispatcher(Dispatcher):
     
     def get_patterns(self):
         return (
-            ('^find me \S+', self.greet),
+            ('^find me \S+', self.find_me),
         )
 
 
@@ -32,5 +32,5 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'googlebot1337'
 
-greeter = IRCBot(host, port, nick, ['#botwars'], [GoogleDispatcher()])
+greeter = GoogleBot(host, port, nick, ['#botwars'])
 greeter.run_forever()

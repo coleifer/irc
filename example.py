@@ -1,7 +1,7 @@
-from irc import Dispatcher, IRCBot
+from irc import IRCBot
 
 
-class GreetingDispatcher(Dispatcher):
+class GreeterBot(IRCBot):
     def greet(self, sender, message, channel, is_ping, reply):
         if is_ping or channel is None:
             reply('Hi, %s' % sender)
@@ -16,5 +16,5 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'greeterbot'
 
-greeter = IRCBot(host, port, nick, ['#botwars'], [GreetingDispatcher()])
+greeter = GreeterBot(host, port, nick, ['#botwars'])
 greeter.run_forever()
