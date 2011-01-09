@@ -66,7 +66,25 @@ class IRCConnection(object):
                         event(**priv_match.groupdict())
 
 
-class Dispatcher(object):    
+class IRCBot(object):
+    def __init__(self, host, port, nick, channels):
+        self.conn = IRCConnection(host, port, nick)
+        self.bind(self.conn)
+        
+        self.channels = channels
+
+    def run_forever(self):
+        self.conn.connect()
+        self.conn.authenticate()
+
+        for channel in self.channels:
+            self.conn.join(channel)
+        
+        try:
+            self.conn.enter_event_loop()
+        except KeyboardInterrupt:
+            self.conn.disconnect()
+    
     def bind(self, conn):
         self.irc = conn
 
@@ -109,12 +127,14 @@ class Dispatcher(object):
             self.irc.send('PRIVMSG %s :%s' % (nick, message))
 
 
-class RateLimitedDispatcher(Dispatcher):
+class RateLimitedIRCBot(IRCBot):
     rate_limit = (3, .75) # every 3 events, wait .75
     
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.num_sent = 0
         self.last_send = 0
+        
+        super(RateLimitedIRCBot, self).__init__(*args, **kwargs)
 
     def send(self, *args, **kwargs):
         if self.num_sent == self.rate_limit[0]:
@@ -123,26 +143,7 @@ class RateLimitedDispatcher(Dispatcher):
                 self.delay(self.rate_limit[1] - (time.time() - self.last_send))
             self.last_send = time.time()
         self.num_sent += 1
-        return super(RateLimitedDispatcher, self).send(*args, **kwargs)
+        return super(RateLimitedIRCBot, self).send(*args, **kwargs)
     
     def delay(self, timeout):
         time.sleep(timeout)
-
-
-class IRCBot(object):
-    def __init__(self, host, port, nick, channels, dispatchers):
-        self.conn = IRCConnection(host, port, nick)
-        self.conn.connect()
-        self.conn.authenticate()
-
-        for channel in channels:
-            self.conn.join(channel)
-
-        for dispatcher in dispatchers:
-            dispatcher.bind(self.conn)
-
-    def run_forever(self):
-        try:
-            self.conn.enter_event_loop()
-        except KeyboardInterrupt:
-            self.conn.disconnect()
