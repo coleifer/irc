@@ -3,7 +3,7 @@ import json
 import re
 import urllib
 
-from irc import IRCBot
+from irc import IRCBot, run_bot
 
 
 class YahooAnswersBot(IRCBot):
@@ -27,22 +27,18 @@ class YahooAnswersBot(IRCBot):
             chosen = answer_data['all']['question'][0]['ChosenAnswer']
             return chosen.encode('utf-8', 'replace')
     
-    def answer(self, sender, message, channel, is_ping, reply):
-        if is_ping:
-            result = self.fetch_answer(message)
-            if result:
-                result = re.sub('[\r\n ]+', ' ', result).strip()
-                reply(result)
+    def answer(self, sender, message, channel):
+        result = self.fetch_answer(message)
+        if result:
+            return re.sub('[\r\n ]+', ' ', result).strip()
     
-    def get_patterns(self):
+    def command_patterns(self):
         return (
-            ('^\S+', self.answer),
+            self.ping('^\S+', self.answer),
         )
 
 
 host = 'irc.freenode.net'
 port = 6667
 nick = 'answer_bot'
-
-yahoo = YahooAnswersBot(host, port, nick, ['#botwars'])
-yahoo.run_forever()
+run_bot(YahooAnswersBot, host, port, nick, ['#botwars'])

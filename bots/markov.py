@@ -5,7 +5,7 @@ import random
 import re
 import sys
 
-from irc import IRCBot
+from irc import IRCBot, IRCConnection
 
 
 class MarkovBot(IRCBot):
@@ -73,32 +73,35 @@ class MarkovBot(IRCBot):
         
         return ' '.join(message)
 
-    def imitate(self, sender, message, channel, is_ping, reply):
+    def imitate(self, sender, message, channel):
         person = message.replace('imitate ', '').strip()[:10]
-        if is_ping and person != self.irc.nick:
+        if person != self.irc.nick:
             return self.generate_message(person)
 
-    def cite(self, sender, message, channel, is_ping, reply):
-        if is_ping and self.last:
+    def cite(self, sender, message, channel):
+        if self.last:
             return self.last
     
     def sanitize_message(self, message):
         """Convert to lower-case and strip out all quotation marks"""
         return re.sub('[\"\']', '', message.lower())
 
-    def log(self, sender, message, channel, is_ping, reply):
+    def log(self, sender, message, channel):
         sender = sender[:10]
         self.word_table.setdefault(sender, {})
-
+        
         if message.startswith('/'):
             return
 
         try:
-            say_something = is_ping or sender != self.irc.nick and random.random() < self.chattiness
+            say_something = self.is_ping(message) or sender != self.irc.nick and random.random() < self.chattiness
         except AttributeError:
             say_something = False
         messages = []
         seed_key = None
+        
+        if self.is_ping(message):
+            message = self.fix_ping(message)
 
         for words in self.split_message(self.sanitize_message(message)):
             key = tuple(words[:-1])
@@ -135,19 +138,20 @@ class MarkovBot(IRCBot):
         for line in fh.readlines():
             self.log(sender, line, '', False, None)
     
-    def get_patterns(self):
+    def command_patterns(self):
         return (
-            ('^imitate \S+', self.imitate),
-            ('^cite', self.cite),
+            self.ping('^imitate \S+', self.imitate),
+            self.ping('^cite', self.cite),
             ('.*', self.log),
         )
 
 
 host = 'irc.freenode.net'
 port = 6667
-nick = 'whatyousay'
+nick = 'whatyousay2'
 
-markov_bot = MarkovBot(host, port, nick, ['#botwars'])
+conn = IRCConnection(host, port, nick)
+markov_bot = MarkovBot(conn)
 
 if len(sys.argv) > 1 and sys.argv[1] == '-log':
     if len(sys.argv) == 3:
@@ -155,6 +159,11 @@ if len(sys.argv) > 1 and sys.argv[1] == '-log':
     elif len(sys.argv):
         markov_bot.load_text_file(sys.argv[2], sys.argv[3])
 else:
-    markov_bot.run_forever()
+    conn.connect()
+    conn.join('#botwars')
+    try:
+        conn.enter_event_loop()
+    except:
+        pass
 
 markov_bot.save_data()

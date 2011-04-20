@@ -3,10 +3,10 @@ import random
 import time
 import urllib
 
-from irc import RateLimitedIRCBot
+from irc import IRCBot, run_bot
 
 
-class AsciiArtBot(RateLimitedIRCBot):
+class AsciiArtBot(IRCBot):
     groupings = ['ab', 'c', 'def', 'ghi', 'jkl', 'mno', 'pqr', 's', 't', 'uvw', 'xyz']
     
     def get_grouping(self, word):
@@ -50,16 +50,16 @@ class AsciiArtBot(RateLimitedIRCBot):
         
         return non_empty_lines > 3
     
-    def display(self, sender, message, channel, is_ping, reply):
-        if is_ping:
-            result = self.fetch_result(message)
-            if result:
-                for line in result.splitlines()[:45]:
-                    reply(line)
+    def display(self, nick, message, channel):
+        result = self.fetch_result(message)
+        if result:
+            for line in result.splitlines()[:45]:
+                self.respond(line, channel=channel)
+                time.sleep(.2)
     
-    def get_patterns(self):
+    def command_patterns(self):
         return (
-            ('^\S+', self.display),
+            self.ping('^\S+', self.display),
         )
 
 
@@ -67,5 +67,4 @@ host = 'irc.freenode.net'
 port = 6667
 nick = 'picasso_bot'
 
-ascii = AsciiArtBot(host, port, nick, ['#botwars'])
-ascii.run_forever()
+run_bot(AsciiArtBot, host, port, nick, ['#botwars'])
