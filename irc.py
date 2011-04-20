@@ -20,11 +20,11 @@ class IRCConnection(object):
     # a couple handy regexes for reading text
     nick_re = re.compile('.*?Nickname is already in use')
     ping_re = re.compile('^PING (?P<payload>.*)')
-    chanmsg_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PRIVMSG\s+#(?P<channel>[-\w]+)\s+:(?P<message>[^\n\r]+)')
+    chanmsg_re = re.compile(':(?P<nick>.*?)!\S+\s+?PRIVMSG\s+#(?P<channel>[-\w]+)\s+:(?P<message>[^\n\r]+)')
     privmsg_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PRIVMSG\s+[^#][^:]+:(?P<message>[^\n\r]+)')
-    part_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PART\s+#(?P<channel>[-\w]+)')
-    join_re = re.compile(':(?P<nick>.*?)!~\S+\s+?JOIN\s+:\s*#(?P<channel>[-\w]+)')
-    quit_re = re.compile(':(?P<nick>.*?)!~\S+\s+?QUIT\s+.*')
+    part_re = re.compile(':(?P<nick>.*?)!\S+\s+?PART\s+#(?P<channel>[-\w]+)')
+    join_re = re.compile(':(?P<nick>.*?)!\S+\s+?JOIN\s+:\s*#(?P<channel>[-\w]+)')
+    quit_re = re.compile(':(?P<nick>.*?)!\S+\s+?QUIT\s+.*')
     
     # mapping for logging verbosity
     verbosity_map = {
