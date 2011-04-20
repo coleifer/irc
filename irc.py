@@ -24,6 +24,7 @@ class IRCConnection(object):
     privmsg_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PRIVMSG\s+[^#][^:]+:(?P<message>[^\n\r]+)')
     part_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PART\s+#(?P<channel>[-\w]+)')
     join_re = re.compile(':(?P<nick>.*?)!~\S+\s+?JOIN\s+:\s*#(?P<channel>[-\w]+)')
+    quit_re = re.compile(':(?P<nick>.*?)!~\S+\s+?QUIT\s+.*')
     
     # mapping for logging verbosity
     verbosity_map = {
@@ -125,6 +126,7 @@ class IRCConnection(object):
             (self.ping_re, self.handle_ping),
             (self.part_re, self.handle_part),
             (self.join_re, self.handle_join),
+            (self.quit_re, self.handle_quit),
             (self.chanmsg_re, self.handle_channel_message),
             (self.privmsg_re, self.handle_private_message),
         )
@@ -161,6 +163,11 @@ class IRCConnection(object):
         for pattern, callback in self._callbacks:
             if pattern.match('/join'):
                 callback(nick, '/join', channel)
+    
+    def handle_quit(self, nick):
+        for pattern, callback in self._callbacks:
+            if pattern.match('/quit'):
+                callback(nick, '/quit', None)
     
     def _process_command(self, nick, message, channel):
         results = []
