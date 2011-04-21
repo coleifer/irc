@@ -271,9 +271,28 @@ class WorkerBot(BaseWorkerBot):
         return self.task_queue.qsize()
 
 
+def get_parser():
+    parser = OptionParser(usage='%prog [options]')
+    parser.add_option('--server', '-s', dest='server', default='irc.freenode.net',
+        help='IRC server to connect to')
+    parser.add_option('--port', '-p', dest='port', default=6667,
+        help='Port to connect on', type='int')
+    parser.add_option('--nick', '-n', dest='nick', default='worker',
+        help='Nick to use')
+    parser.add_option('--boss', '-b', dest='boss', default='boss1337')
+    parser.add_option('--logfile', '-f', dest='logfile')
+    parser.add_option('--verbosity', '-v', dest='verbosity', default=1, type='int')
+    
+    return parser
+
+
 if __name__ == '__main__':    
-    conn = IRCConnection('irc.freenode.net', 6667, 'workerbot', 'workerbot.log')
+    parser = get_parser()
+    (options, args) = parser.parse_args()
+    
+    conn = IRCConnection(options.server, options.port, options.nick,
+        options.logfile, options.verbosity)
     conn.connect()
     
-    bot = WorkerBot(conn, 'boss1337')
+    bot = WorkerBot(conn, options.boss)
     conn.enter_event_loop()
