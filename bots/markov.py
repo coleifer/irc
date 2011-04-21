@@ -75,7 +75,7 @@ class MarkovBot(IRCBot):
 
     def imitate(self, sender, message, channel):
         person = message.replace('imitate ', '').strip()[:10]
-        if person != self.irc.nick:
+        if person != self.conn.nick:
             return self.generate_message(person)
 
     def cite(self, sender, message, channel):
@@ -94,7 +94,7 @@ class MarkovBot(IRCBot):
             return
 
         try:
-            say_something = self.is_ping(message) or sender != self.irc.nick and random.random() < self.chattiness
+            say_something = self.is_ping(message) or sender != self.conn.nick and random.random() < self.chattiness
         except AttributeError:
             say_something = False
         messages = []
@@ -148,7 +148,7 @@ class MarkovBot(IRCBot):
 
 host = 'irc.freenode.net'
 port = 6667
-nick = 'whatyousay2'
+nick = 'whatyousay'
 
 conn = IRCConnection(host, port, nick)
 markov_bot = MarkovBot(conn)
