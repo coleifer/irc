@@ -1,4 +1,3 @@
-import gevent
 import logging
 import os
 import random
@@ -6,9 +5,11 @@ import re
 import sys
 import time
 
-from gevent import socket
-from gevent.event import Event
-from gevent.queue import Queue
+try:
+    from gevent import socket
+except ImportError:
+    import socket
+
 from logging.handlers import RotatingFileHandler
 from optparse import OptionParser
 
