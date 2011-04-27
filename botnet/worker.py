@@ -345,6 +345,8 @@ class WorkerBot(BaseWorkerBot):
                         packets += 1
                     except socket.error:
                         pass
+
+            gevent.sleep(60)
             
         return "%s failed, %s packets sent" % (failed, packets)
     
