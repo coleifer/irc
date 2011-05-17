@@ -89,16 +89,13 @@ class IRCConnection(object):
             sys.exit(1)
         
         self._sock_file = self._sock.makefile()
-        
-        self.send('USER %s %s bla :%s' % (self.nick, self.server, self.nick), True)
+        self.register()        
+    
+    def register(self):
         self.logger.info('Authing as %s' % self.nick)
-        
-        # send NICK command as soon as authing
-        self.register_nick()
-    
-    def register_nick(self):
         self.send('NICK %s' % self.nick, True)
-    
+        self.send('USER %s %s bla :%s' % (self.nick, self.server, self.nick), True)
+
     def join(self, channel):
         channel = channel.lstrip('#')
         self.send('JOIN #%s' % channel)
