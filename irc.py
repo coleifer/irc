@@ -35,7 +35,7 @@ class IRCConnection(object):
         2: logging.DEBUG,
     }
     
-    def __init__(self, server, port, nick, logfile=None, verbosity=1):
+    def __init__(self, server, port, nick, logfile=None, verbosity=1, needs_registration=True):
         self.server = server
         self.port = port
         self.nick = self.base_nick = nick
@@ -43,7 +43,7 @@ class IRCConnection(object):
         self.logfile = logfile
         self.verbosity = verbosity
         
-        self._registered = False
+        self._registered = not needs_registration
         self._out_buffer = []
         self._callbacks = []
         self.logger = self.get_logger('ircconnection.logger', self.logfile)
