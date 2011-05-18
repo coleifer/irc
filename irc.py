@@ -26,6 +26,7 @@ class IRCConnection(object):
     part_re = re.compile(':(?P<nick>.*?)!\S+\s+?PART\s+#(?P<channel>[-\w]+)')
     join_re = re.compile(':(?P<nick>.*?)!\S+\s+?JOIN\s+:\s*#(?P<channel>[-\w]+)')
     quit_re = re.compile(':(?P<nick>.*?)!\S+\s+?QUIT\s+.*')
+    registered_re = re.compile(':(?P<server>.*?)\s+(?:376|422)')
     
     # mapping for logging verbosity
     verbosity_map = {
@@ -34,7 +35,7 @@ class IRCConnection(object):
         2: logging.DEBUG,
     }
     
-    def __init__(self, server, port, nick, logfile=None, verbosity=1):
+    def __init__(self, server, port, nick, logfile=None, verbosity=1, needs_registration=True):
         self.server = server
         self.port = port
         self.nick = self.base_nick = nick
@@ -42,6 +43,8 @@ class IRCConnection(object):
         self.logfile = logfile
         self.verbosity = verbosity
         
+        self._registered = not needs_registration
+        self._out_buffer = []
         self._callbacks = []
         self.logger = self.get_logger('ircconnection.logger', self.logfile)
     
@@ -61,12 +64,18 @@ class IRCConnection(object):
         
         return log
     
-    def send(self, data):
+    def send(self, data, force=False):
         """\
-        Send raw data over the wire
+        Send raw data over the wire if connection is registered. Otherewise,
+        save the data to an output buffer for transmission later on.
+        If the force flag is true, always send data, regardless of 
+        registration status.
         """
-        self._sock_file.write('%s\r\n' % data)
-        self._sock_file.flush()
+        if self._registered or force:
+            self._sock_file.write('%s\r\n' % data)
+            self._sock_file.flush()
+        else:
+            self._out_buffer.append(data)
     
     def connect(self):
         """\
@@ -80,16 +89,13 @@ class IRCConnection(object):
             sys.exit(1)
         
         self._sock_file = self._sock.makefile()
-        
-        self.send('USER %s %s bla :%s' % (self.nick, self.server, self.nick))
+        self.register()        
+    
+    def register(self):
         self.logger.info('Authing as %s' % self.nick)
-        
-        # send NICK command as soon as authing
-        self.register_nick()
-    
-    def register_nick(self):
-        self.send('NICK %s' % self.nick)
-    
+        self.send('NICK %s' % self.nick, True)
+        self.send('USER %s %s bla :%s' % (self.nick, self.server, self.nick), True)
+
     def join(self, channel):
         channel = channel.lstrip('#')
         self.send('JOIN #%s' % channel)
@@ -130,6 +136,7 @@ class IRCConnection(object):
             (self.quit_re, self.handle_quit),
             (self.chanmsg_re, self.handle_channel_message),
             (self.privmsg_re, self.handle_private_message),
+            (self.registered_re, self.handle_registered),
         )
     
     def register_callbacks(self, callbacks):
@@ -153,7 +160,19 @@ class IRCConnection(object):
         Respond to periodic PING messages from server
         """
         self.logger.info('server ping: %s' % payload)
-        self.send('PONG %s' % payload)
+        self.send('PONG %s' % payload, True)
+
+    def handle_registered(self, server):
+        """\
+        When the connection to the server is registered, send all pending
+        data.
+        """
+        if not self._registered:
+            self.logger.info('Registered')
+            self._registered = True
+            for data in self._out_buffer:
+                self.send(data)
+            self._out_buffer = []
     
     def handle_part(self, nick, channel):
         for pattern, callback in self._callbacks:
