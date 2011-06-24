@@ -89,11 +89,18 @@ class IRCConnection(object):
             sys.exit(1)
         
         self._sock_file = self._sock.makefile()
-        self.register()        
+        self.register_nick()
+        self.register()
     
+    def close(self):
+        self._sock.close()    
+    
+    def register_nick(self):
+        self.logger.info('Registering nick %s' % self.nick)
+        self.send('NICK %s' % self.nick, True)
+
     def register(self):
         self.logger.info('Authing as %s' % self.nick)
-        self.send('NICK %s' % self.nick, True)
         self.send('USER %s %s bla :%s' % (self.nick, self.server, self.nick), True)
 
     def join(self, channel):
@@ -218,7 +225,16 @@ class IRCConnection(object):
         self.logger.debug('entering receive loop')
         
         while 1:
-            data = self._sock_file.readline()
+            try:
+                data = self._sock_file.readline()
+            except socket.error:
+                data = None
+            
+            if not data:
+                self.logger.info('server closed connection')
+                self.close()
+                return True
+            
             data = data.rstrip()
 
             for pattern, callback in patterns:
@@ -289,15 +305,17 @@ def run_bot(bot_class, host, port, nick, channels=None):
     some channels
     """
     conn = IRCConnection(host, port, nick)
-    conn.connect()
     bot_instance = bot_class(conn)
     
-    channels = channels or []
-    
-    for channel in channels:
-        conn.join(channel)
-    
-    conn.enter_event_loop()
+    while 1:
+        conn.connect()
+        
+        channels = channels or []
+        
+        for channel in channels:
+            conn.join(channel)
+        
+        conn.enter_event_loop()
 
 
 class SimpleSerialize(object):
