@@ -84,7 +84,6 @@ class MarkovBot(IRCBot):
         )
         
         messages = []
-        seed = None
         
         # use a convenience method to strip out the "ping" portion of a message
         if self.is_ping(message):
