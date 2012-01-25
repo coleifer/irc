@@ -75,9 +75,6 @@ class MarkovBot(IRCBot):
         return ' '.join(gen_words)
 
     def log(self, sender, message, channel):
-        if message.startswith('/'):
-            return
-
         # speak only when spoken to, or when the spirit moves me
         say_something = self.is_ping(message) or (
             sender != self.conn.nick and random.random() < self.chattiness
@@ -88,6 +85,9 @@ class MarkovBot(IRCBot):
         # use a convenience method to strip out the "ping" portion of a message
         if self.is_ping(message):
             message = self.fix_ping(message)
+        
+        if message.startswith('/'):
+            return
 
         # split up the incoming message into chunks that are 1 word longer than
         # the size of the chain, e.g. ['what', 'up', 'bro'], ['up', 'bro', '\x02']
