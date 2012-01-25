@@ -48,31 +48,31 @@ class MarkovBot(IRCBot):
                 yield words[i:i + self.chain_length + 1]
     
     def generate_message(self, seed):
-        message = []
+        key = seed
         
-        # generate a certain number of messages and return the longest
-        for i in range(self.messages_to_generate):
-            key = seed
+        # keep a list of words we've seen
+        gen_words = []
+        
+        # only follow the chain so far, up to <max words>
+        for i in xrange(self.max_words):
+        
+            # split the key on the separator to extract the words -- the key
+            # might look like "this\x01is" and split out into ['this', 'is']
+            words = key.split(self.separator)
             
-            gen_words = []
-            for i in xrange(self.max_words):
-                # split the key on the separator to extract the words
-                words = key.split(self.separator)
-                
-                # add the word to the list of words in our generated message
-                gen_words.append(words[0])
-                
-                # get a new word
-                next_word = self.redis_conn.srandmember(self.make_key(key))
-                if not next_word:
-                    break
-                
-                key = self.separator.join(words[1:] + [next_word])
+            # add the word to the list of words in our generated message
+            gen_words.append(words[0])
+            
+            # get a new word that lives at this key -- if none are present we've
+            # reached the end of the chain and can bail
+            next_word = self.redis_conn.srandmember(self.make_key(key))
+            if not next_word:
+                break
+            
+            # create a new key combining the end of the old one and the next_word
+            key = self.separator.join(words[1:] + [next_word])
 
-            if len(gen_words) > len(message):
-                message = list(gen_words)
-        
-        return ' '.join(message)
+        return ' '.join(gen_words)
 
     def log(self, sender, message, channel):
         if message.startswith('/'):
@@ -100,11 +100,16 @@ class MarkovBot(IRCBot):
             self.redis_conn.sadd(self.make_key(key), words[-1])
             
             # if we should say something, generate some messages based on what
-            # was just said
+            # was just said and select the longest, then add it to the list
             if say_something:
-                generated = self.generate_message(seed=key)
-                if generated:
-                    messages.append(generated)
+                best_message = ''
+                for i in range(self.messages_to_generate):
+                    generated = self.generate_message(seed=key)
+                    if len(generated) > len(best_message):
+                        best_message = generated
+                
+                if best_message:
+                    messages.append(best_message)
         
         if len(messages):
             return random.choice(messages)
