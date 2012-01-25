@@ -59,10 +59,6 @@ class MarkovBot(IRCBot):
                 # split the key on the separator to extract the words
                 words = key.split(self.separator)
                 
-                # if we've hit a stop-word, break here
-                if words[0] == self.stop_word:
-                    break
-
                 # add the word to the list of words in our generated message
                 gen_words.append(words[0])
                 
