@@ -38,13 +38,13 @@ class MarkovBot(IRCBot):
         if len(words) > self.chain_length:
             
             # add some stop words onto the message
-            # ['what', 'up', 'bro', '\n', '\n']
-            words.extend([self.stop_word] * self.chain_length)
+            # ['what', 'up', 'bro', '\x02']
+            words.append(self.stop_word)
             
-            # len(words) == 5, so range(5-2-1) == range(2) == 0, 1, meaning
+            # len(words) == 4, so range(4-2) == range(2) == 0, 1, meaning
             # we return the following slices: [0:3], [1:4]
             # or ['what', 'up', 'bro'], ['up', 'bro', '\x02']
-            for i in range(len(words) - self.chain_length - 1):
+            for i in range(len(words) - self.chain_length):
                 yield words[i:i + self.chain_length + 1]
     
     def generate_message(self, seed):
@@ -121,6 +121,6 @@ class MarkovBot(IRCBot):
 
 host = 'irc.freenode.net'
 port = 6667
-nick = 'whatyousay2'
+nick = 'whatyousay'
 
 run_bot(MarkovBot, host, port, nick, ['#lawrence-botwars'])
