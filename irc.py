@@ -200,7 +200,7 @@ class IRCConnection(object):
         results = []
         
         for pattern, callback in self._callbacks:
-            match = pattern.match(message)
+            match = pattern.match(message) or pattern.match('/privmsg')
             if match:
                 results.append(callback(nick, message, channel, **match.groupdict()))
         
