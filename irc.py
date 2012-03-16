@@ -20,6 +20,7 @@ class IRCConnection(object):
     """
     # a couple handy regexes for reading text
     nick_re = re.compile('.*?Nickname is already in use')
+    nick_change_re = re.compile(':(?P<old_nick>.*?)!\S+\s+?NICK\s+:\s*(?P<new_nick>[-\w]+)')
     ping_re = re.compile('^PING (?P<payload>.*)')
     chanmsg_re = re.compile(':(?P<nick>.*?)!\S+\s+?PRIVMSG\s+#(?P<channel>[-\w]+)\s+:(?P<message>[^\n\r]+)')
     privmsg_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PRIVMSG\s+[^#][^:]+:(?P<message>[^\n\r]+)')
@@ -137,6 +138,7 @@ class IRCConnection(object):
         """
         return (
             (self.nick_re, self.new_nick),
+            (self.nick_change_re, self.handle_nick_change),
             (self.ping_re, self.handle_ping),
             (self.part_re, self.handle_part),
             (self.join_re, self.handle_join),
@@ -161,7 +163,13 @@ class IRCConnection(object):
         self.nick = '%s_%s' % (self.base_nick, random.randint(1, 1000))
         self.logger.warn('Nick %s already taken, trying %s' % (old, self.nick))
         self.register_nick()
-    
+        self.handle_nick_change(old, self.nick)
+
+    def handle_nick_change(self, old_nick, new_nick):
+        for pattern, callback in self._callbacks:
+            if pattern.match('/nick'):
+                callback(old_nick, '/nick', new_nick)
+
     def handle_ping(self, payload):
         """\
         Respond to periodic PING messages from server
