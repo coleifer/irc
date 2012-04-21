@@ -12,7 +12,7 @@ tinkering with a made-from-scratch irc library in python
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :glob:
 
    installation
