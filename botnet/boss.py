@@ -179,6 +179,7 @@ class BotnetBot(IRCBot):
             ('!task-received (?P<task_id>\d+)', self.task_received),
             ('!uptime', self.require_boss(self.uptime)),
             ('!worker-pong (?P<hostname>.+)', self.worker_health_handler),
+            ('!help', self.require_boss(self.help)),
         )
     
     def join_handler(self, nick, message, channel):
@@ -314,6 +315,13 @@ class BotnetBot(IRCBot):
             self.logger.debug('Worker [%s] is alive' % nick)
         else:
             self.register(nick, message, channel, hostname)
+
+    def help(self, nick, message, channel, hostname):
+        self.send_user('!execute (num workers) <command> -- run "command" on workers')
+        self.send_user('!print (task id) -- print output of tasks or task with id')
+        self.send_user('!stop -- tell workers to stop their current task')
+        self.send_user('!status -- get status on workers and tasks')
+        self.send_user('!uptime -- boss uptime')
 
 
 def get_parser():
