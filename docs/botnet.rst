@@ -131,6 +131,12 @@ Example usage::
     # terminate my workers, I'm done
     python launcher.py terminate
 
+.. note::
+    The launcher comes with a bootstrap script and is designed by default to use
+    an Ubuntu 10.04 LTS 32-bit AMI in US-East.  The bootstrap script may need to
+    be modified slightly if you intend to use a different AMI as the packages
+    may be different.
+
 
 Running the launcher
 ^^^^^^^^^^^^^^^^^^^^
