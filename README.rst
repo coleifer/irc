@@ -3,7 +3,7 @@ irc
 
 tinkering with a made-from-scratch irc library in python
 
-[documentation](http://irckit.readthedocs.org/) hosted on readthedocs.org
+`documentation <http://irckit.readthedocs.org>`_ hosted on readthedocs.org
 
 
 installing
