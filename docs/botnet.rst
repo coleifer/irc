@@ -139,34 +139,33 @@ The launcher takes a number of options, which instruct it which AMI to use, what
 size instances to create, number of workers to spawn, etc.  It also takes all the
 same parameters the worker takes, and passes those along to the workers it spawns.
 
-===============  ============================ ====================
-switch           meaning                      example
-===============  ============================ ====================
-
---workers        number of workers to spawn   --workers=5
---quiet          no output                    --quiet
---script         custom bootstrap script      --script=my-custom-script.sh
---ami            AMI id to use                --ami=ami-ab36fbc2
---key            AWS access key               --key=foo
---secret         AWS secret access key        --secret=bar
---type           Instance size                --type=t1.micro
---key-name       Security pair key name       --key-name=master-key
---group          Security group for instances --group=default
-===============  ============================ ====================
+===============  ============================   ====================
+switch           meaning                        example
+===============  ============================   ====================
+--workers        number of workers to spawn     --workers=5
+--quiet          no output                      --quiet
+--script         custom bootstrap script        --script=my-custom-script.sh
+--ami            AMI id to use                  --ami=ami-ab36fbc2
+--key            AWS access key                 --key=foo
+--secret         AWS secret access key          --secret=bar
+--type           Instance size                  --type=t1.micro
+--key-name       Security pair key name         --key-name=master-key
+--group          Security group for instances   --group=default
+===============  ============================   ====================
 
 
 The following switches will be passed on to the workers launched by the launcher:
 
-======  ============================ ====================
-switch  meaning                      example
-======  ============================ ====================
--s      server to connect to         -s irc.freenode.net
--p      port to connect on           -p 6667
--n      base nickname for worker     -n worker
--b      nickname of boss *important* -b daboss1
--f      logfile for output           -f /var/log/worker.log
--v      verbosity of output 0 -2     -v 1
-======  ============================ ====================
+======  ============================   ====================
+switch  meaning                        example
+======  ============================   ====================
+-s      server to connect to           -s irc.freenode.net
+-p      port to connect on             -p 6667
+-n      base nickname for worker       -n worker
+-b      nickname of boss *important*   -b daboss1
+-f      logfile for output             -f /var/log/worker.log
+-v      verbosity of output 0 - 2      -v 1
+======  ============================   ====================
 
 
 Issuing commands to the BotNet
@@ -209,18 +208,18 @@ manner::
 Command reference
 -----------------
 
-========================================= =======================================================
-Command                                   Meaning
-========================================= =======================================================
+==================================  ========================================================
+Command                              Meaning
+==================================  ========================================================
+!auth <password>                     authenticate with the boss
+!execute (num workers) <command>     execute the given command (optional, number of workers)
+!print (task id)                     print output of tasks or task with id
+!stop                                tell workers to stop their current task
+!status                              get status on workers and tasks
+!uptime                              boss uptime
+!help                                display list of commands
+==================================  ========================================================
 
-!auth <password>                          authenticate with the boss
-!execute (num workers) <command>          execute the given command (optional, number of workers)
-!print (task id)                          print output of tasks or task with id
-!stop                                     tell workers to stop their current task
-!status                                   get status on workers and tasks
-!uptime                                   boss uptime
-!help                                     display list of commands
-========================================= =======================================================
 
 Commands you can execute on workers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
