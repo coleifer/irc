@@ -117,7 +117,7 @@ Launching a number of workers using EC2
 ---------------------------------------
 
 The BotNet comes with a launcher to make it easy to spin up an arbitrary number
-of workers using amazon's EC2.  This launcher requires [boto](https://github.com/boto/boto),
+of workers using amazon's EC2.  This launcher requires `boto <https://github.com/boto/boto)>`_,
 the python/aws library.
 
 Example usage::
