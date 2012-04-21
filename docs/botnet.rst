@@ -70,8 +70,9 @@ Starting the Boss
 
 ``python boss.py [options]``
 
+======  ============================ ====================
 switch  meaning                      example
-======  =======                      =======
+======  ============================ ====================
 -s      server to connect to         -s irc.freenode.net
 -p      port to connect on           -p 6667
 -n      nickname to use for boss     -n boss1337
@@ -79,6 +80,7 @@ switch  meaning                      example
 -c      c&c channel                  -c #secret-channel
 -f      logfile                      -f /var/log/boss.log
 -v      verbosity of logging (0 - 2) -v 1
+======  ============================ ====================
 
 
 The Worker
@@ -99,14 +101,16 @@ Starting the worker
 
 ``python worker.py [options]``
 
-switch  meaning                         example
-======  =======                         =======
--s      server to connect to            -s irc.freenode.net
--p      port to connect on              -p 6667
--n      base nickname for worker        -n worker
--b      nickname of boss *important*    -b daboss1
--f      logfile for output              -f /var/log/worker.log
--v      verbosity of output 0 -2        -v 1
+======  ============================ ====================
+switch  meaning                      example
+======  ============================ ====================
+-s      server to connect to         -s irc.freenode.net
+-p      port to connect on           -p 6667
+-n      base nickname for worker     -n worker
+-b      nickname of boss *important* -b daboss1
+-f      logfile for output           -f /var/log/worker.log
+-v      verbosity of output 0 -2     -v 1
+======  ============================ ====================
 
 
 Launching a number of workers using EC2
@@ -135,8 +139,9 @@ The launcher takes a number of options, which instruct it which AMI to use, what
 size instances to create, number of workers to spawn, etc.  It also takes all the
 same parameters the worker takes, and passes those along to the workers it spawns.
 
+===============  ============================ ====================
 switch           meaning                      example
-===========      =======                      =======
+===============  ============================ ====================
 
 --workers        number of workers to spawn   --workers=5
 --quiet          no output                    --quiet
@@ -147,18 +152,21 @@ switch           meaning                      example
 --type           Instance size                --type=t1.micro
 --key-name       Security pair key name       --key-name=master-key
 --group          Security group for instances --group=default
+===============  ============================ ====================
 
 
 The following switches will be passed on to the workers launched by the launcher:
 
-switch  meaning                         example
-======  =======                         =======
--s      server to connect to            -s irc.freenode.net
--p      port to connect on              -p 6667
--n      base nickname for worker        -n worker
--b      nickname of boss *important*    -b daboss1
--f      logfile for output              -f /var/log/worker.log
--v      verbosity of output 0 -2        -v 1
+======  ============================ ====================
+switch  meaning                      example
+======  ============================ ====================
+-s      server to connect to         -s irc.freenode.net
+-p      port to connect on           -p 6667
+-n      base nickname for worker     -n worker
+-b      nickname of boss *important* -b daboss1
+-f      logfile for output           -f /var/log/worker.log
+-v      verbosity of output 0 -2     -v 1
+======  ============================ ====================
 
 
 Issuing commands to the BotNet
@@ -177,19 +185,19 @@ manner::
        <you>     !auth qwerty
        <daboss1> Success
 
-2. Ask for status
+2. Ask for status::
 
        <you>     !status
        <daboss1> 1 workers available
        <daboss1> 0 tasks have been scheduled
 
-3. Run a command
+3. Run a command::
 
        <you>     !execute run vmstat
        <daboss1> Scheduled task: "run vmstat" with id 1 [1 workers]
        <daboss1> Task 1 completed by 1 workers
 
-4. View result returned by worker:
+4. View result returned by worker::
 
        <you>     !print
        <daboss1> [w0rk3r:{alpha}] - run vmstat
@@ -201,8 +209,9 @@ manner::
 Command reference
 -----------------
 
+========================================= =======================================================
 Command                                   Meaning
-=======                                   =======
+========================================= =======================================================
 
 !auth <password>                          authenticate with the boss
 !execute (num workers) <command>          execute the given command (optional, number of workers)
@@ -211,13 +220,12 @@ Command                                   Meaning
 !status                                   get status on workers and tasks
 !uptime                                   boss uptime
 !help                                     display list of commands
+========================================= =======================================================
 
 Commands you can execute on workers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following commands are available to workers using ``!execute``:
-
-            ('send_file (?P<filename>[^\s]+) (?P<destination>[^\s]+)', self.send_file),
 
             
 ``run <program>``
