@@ -7,7 +7,7 @@ f.close()
 
 setup(
     name='irckit',
-    version="0.1.0",
+    version="0.1.1",
     description='tinkering with a made-from-scratch irc library in python',
     long_description=readme,
     author='Charles Leifer',
