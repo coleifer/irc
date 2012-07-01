@@ -22,10 +22,10 @@ class IRCConnection(object):
     nick_re = re.compile('.*?Nickname is already in use')
     nick_change_re = re.compile(':(?P<old_nick>.*?)!\S+\s+?NICK\s+:\s*(?P<new_nick>[-\w]+)')
     ping_re = re.compile('^PING (?P<payload>.*)')
-    chanmsg_re = re.compile(':(?P<nick>.*?)!\S+\s+?PRIVMSG\s+#(?P<channel>[-\w]+)\s+:(?P<message>[^\n\r]+)')
+    chanmsg_re = re.compile(':(?P<nick>.*?)!\S+\s+?PRIVMSG\s+(?P<channel>#+[-\w]+)\s+:(?P<message>[^\n\r]+)')
     privmsg_re = re.compile(':(?P<nick>.*?)!~\S+\s+?PRIVMSG\s+[^#][^:]+:(?P<message>[^\n\r]+)')
-    part_re = re.compile(':(?P<nick>.*?)!\S+\s+?PART\s+#(?P<channel>[-\w]+)')
-    join_re = re.compile(':(?P<nick>.*?)!\S+\s+?JOIN\s+:\s*#(?P<channel>[-\w]+)')
+    part_re = re.compile(':(?P<nick>.*?)!\S+\s+?PART\s+(?P<channel>#+[-\w]+)')
+    join_re = re.compile(':(?P<nick>.*?)!\S+\s+?JOIN\s+:\s*(?P<channel>#+[-\w]+)')
     quit_re = re.compile(':(?P<nick>.*?)!\S+\s+?QUIT\s+.*')
     registered_re = re.compile(':(?P<server>.*?)\s+(?:376|422)')
     
@@ -105,22 +105,26 @@ class IRCConnection(object):
         self.send('USER %s %s bla :%s' % (self.nick, self.server, self.nick), True)
 
     def join(self, channel):
-        channel = channel.lstrip('#')
-        self.send('JOIN #%s' % channel)
-        self.logger.debug('joining #%s' % channel)
+        if not channel.startswith('#'):
+            channel = '#%s' % channel
+        self.send('JOIN %s' % channel)
+        self.logger.debug('joining %s' % channel)
 
     def part(self, channel):
-        channel = channel.lstrip('#')
-        self.send('PART #%s' % channel)
-        self.logger.debug('leaving #%s' % channel)
-    
+        if not channel.startswith('#'):
+            channel = '#%s' % channel
+        self.send('PART %s' % channel)
+        self.logger.debug('leaving %s' % channel)
+
     def respond(self, message, channel=None, nick=None):
         """\
         Multipurpose method for sending responses to channel or via message to
         a single user
         """
         if channel:
-            self.send('PRIVMSG #%s :%s' % (channel.lstrip('#'), message))
+            if not channel.startswith('#'):
+                channel = '#%s' % channel
+            self.send('PRIVMSG %s :%s' % (channel, message))
         elif nick:
             self.send('PRIVMSG %s :%s' % (nick, message))
     
