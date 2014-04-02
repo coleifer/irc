@@ -87,11 +87,12 @@ class IRCConnection(object):
             self._sock.connect((self.server, self.port))
         except socket.error:
             self.logger.error('Unable to connect to %s on port %d' % (self.server, self.port), exc_info=1)
-            sys.exit(1)
+            return False
 
         self._sock_file = self._sock.makefile()
         self.register_nick()
         self.register()
+        return True
 
     def close(self):
         self._sock.close()
@@ -320,7 +321,8 @@ def run_bot(bot_class, host, port, nick, channels=None):
     bot_instance = bot_class(conn)
 
     while 1:
-        conn.connect()
+        if not conn.connect():
+            break
 
         channels = channels or []
 
