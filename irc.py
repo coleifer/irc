@@ -36,10 +36,11 @@ class IRCConnection(object):
         2: logging.DEBUG,
     }
 
-    def __init__(self, server, port, nick, logfile=None, verbosity=1, needs_registration=True):
+    def __init__(self, server, port, nick, password=None, logfile=None, verbosity=1, needs_registration=True):
         self.server = server
         self.port = port
         self.nick = self.base_nick = nick
+        self.password = password
 
         self.logfile = logfile
         self.verbosity = verbosity
@@ -90,12 +91,18 @@ class IRCConnection(object):
             return False
 
         self._sock_file = self._sock.makefile()
+        if self.password:
+            self.set_password()
         self.register_nick()
         self.register()
         return True
 
     def close(self):
         self._sock.close()
+
+    def set_password(self):
+        self.logger.info('Setting password')
+        self.send('PASS %s' % self.password, True)
 
     def register_nick(self):
         self.logger.info('Registering nick %s' % self.nick)
