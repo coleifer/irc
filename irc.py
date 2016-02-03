@@ -4,6 +4,7 @@ import random
 import re
 import sys
 import time
+import ssl
 
 try:
     from gevent import socket
@@ -36,7 +37,7 @@ class IRCConnection(object):
         2: logging.DEBUG,
     }
 
-    def __init__(self, server, port, nick, password=None, logfile=None, verbosity=1, needs_registration=True):
+    def __init__(self, server, port, nick, password=None, logfile=None, verbosity=1, needs_registration=True, ssl=None):
         self.server = server
         self.port = port
         self.nick = self.base_nick = nick
@@ -49,6 +50,10 @@ class IRCConnection(object):
         self._out_buffer = []
         self._callbacks = []
         self.logger = self.get_logger('ircconnection.logger', self.logfile)
+
+        self.use_ssl = False
+        if ssl == True or port == 6697: # 6697 is the de facto standard SSL port for IRC
+            self.use_ssl = True
 
     def get_logger(self, logger_name, filename):
         log = logging.getLogger(logger_name)
@@ -84,6 +89,8 @@ class IRCConnection(object):
         Connect to the IRC server using the nickname
         """
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if self.use_ssl:
+            self._sock = ssl.wrap_socket(self._sock)
         try:
             self._sock.connect((self.server, self.port))
         except socket.error:
@@ -319,12 +326,12 @@ class IRCBot(object):
         self.conn.respond(message, channel, nick)
 
 
-def run_bot(bot_class, host, port, nick, channels=None):
+def run_bot(bot_class, host, port, nick, channels=None, ssl=None):
     """\
     Convenience function to start a bot on the given network, optionally joining
     some channels
     """
-    conn = IRCConnection(host, port, nick)
+    conn = IRCConnection(host, port, nick, ssl)
     bot_instance = bot_class(conn)
 
     while 1:
